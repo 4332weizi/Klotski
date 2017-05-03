@@ -20,6 +20,7 @@ public class Klotski extends SurfaceView implements SurfaceHolder.Callback {
     private final String TAG = getClass().getSimpleName();
 
     private SurfaceHolder mSurfaceHolder;
+    private DrawThread mDrawThread;
 
     private int mChessManWidth;
     private int mChessManHeight;
@@ -39,6 +40,8 @@ public class Klotski extends SurfaceView implements SurfaceHolder.Callback {
         mSurfaceHolder.addCallback(this);
         setZOrderOnTop(true);
         mSurfaceHolder.setFormat(PixelFormat.TRANSLUCENT);
+
+        setWillNotDraw(false);
 
         TypedArray ta = getContext().obtainStyledAttributes(attrs, R.styleable.Klotski);
         int color = ta.getColor(R.styleable.Klotski_color, Color.TRANSPARENT);
@@ -76,7 +79,8 @@ public class Klotski extends SurfaceView implements SurfaceHolder.Callback {
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        draw();
+        mDrawThread = new DrawThread(mSurfaceHolder);
+        mDrawThread.startDrawing();
     }
 
     @Override
@@ -86,15 +90,51 @@ public class Klotski extends SurfaceView implements SurfaceHolder.Callback {
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
-
+        mDrawThread.stopDrawing();
     }
 
-    public void draw() {
-        Canvas canvas = mSurfaceHolder.lockCanvas();
-        Paint paint = new Paint();
-        paint.setColor(Color.RED);
-        canvas.drawRect(0, 0, mChessManWidth, mChessManHeight, paint);
-        mSurfaceHolder.unlockCanvasAndPost(canvas);
-    }
+    private class DrawThread extends Thread {
 
+        private SurfaceHolder mSurfaceHolder;
+        private boolean running;
+
+        public DrawThread(SurfaceHolder mSurfaceHolder) {
+            this.mSurfaceHolder = mSurfaceHolder;
+        }
+
+        public void startDrawing() {
+            running = true;
+            start();
+        }
+
+        public void stopDrawing() {
+            running = false;
+        }
+
+        @Override
+        public void run() {
+            Canvas canvas;
+            while (running) {
+                canvas = null;
+                try {
+                    canvas = mSurfaceHolder.lockCanvas(null);
+                    synchronized (mSurfaceHolder) {
+                        draw(canvas);
+                    }
+                } finally {
+                    if (canvas != null) {
+                        mSurfaceHolder.unlockCanvasAndPost(canvas);
+                    }
+                }
+            }
+        }
+
+        public void draw(Canvas canvas) {
+            if (canvas == null)
+                return;
+            Paint paint = new Paint();
+            paint.setColor(Color.rgb(0, 0, 0));
+            canvas.drawRect(0, 0, mChessManWidth, mChessManHeight, paint);
+        }
+    }
 }
