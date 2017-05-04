@@ -36,13 +36,14 @@ public class KlotskiMapParser {
     //          |       |///////|///////////////|
     //          ├-------┤///3///├---------------┤
     //          |///////|///////|///////////////|
-    //          |   1   |///////|///////2///////|
+    //          |///1///|///////|///////2///////|
     //          |///////|///////|///////////////|
     //          ├-------┼-------┼---------------┤
     //          |///////|///////|///////////////|
     //          |///1///|///1///|///////2///////|
     //          |///////|///////|///////////////|
     //          └-------┴-------┴---------------┘
+    //                  └-----exit------┘
 
     public static List<Block> parse(String map) {
 
@@ -55,7 +56,7 @@ public class KlotskiMapParser {
             int type = Integer.parseInt(temp[i * 3]);
             int posX = Integer.parseInt(temp[i * 3 + 1]);
             int posY = Integer.parseInt(temp[i * 3 + 2]);
-            blocks.add(new Block(Block.Type.parse(type), posX, posY));
+            blocks.add(new Block(Block.Type.parse(type), posX, posY, null));
         }
 
         return blocks;

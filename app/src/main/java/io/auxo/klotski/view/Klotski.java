@@ -4,8 +4,9 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.Paint;
 import android.graphics.PixelFormat;
+import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -13,7 +14,11 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.ViewGroup;
 
+import java.util.List;
+
 import io.auxo.klotski.R;
+import io.auxo.klotski.model.Block;
+import io.auxo.klotski.util.Dimension;
 
 public class Klotski extends SurfaceView implements SurfaceHolder.Callback {
 
@@ -22,8 +27,18 @@ public class Klotski extends SurfaceView implements SurfaceHolder.Callback {
     private SurfaceHolder mSurfaceHolder;
     private DrawThread mDrawThread;
 
+    private int[][] map = new int[5][4];
+
+    private List<Block> mBlocks;
+
     private int mChessManWidth;
     private int mChessManHeight;
+
+    private float mBlockSpacing;
+    private Drawable mDrawable1x1;
+    private Drawable mDrawable1x2;
+    private Drawable mDrawable2x1;
+    private Drawable mDrawable2x2;
 
     public Klotski(Context context) {
         this(context, null);
@@ -44,7 +59,11 @@ public class Klotski extends SurfaceView implements SurfaceHolder.Callback {
         setWillNotDraw(false);
 
         TypedArray ta = getContext().obtainStyledAttributes(attrs, R.styleable.Klotski);
-        int color = ta.getColor(R.styleable.Klotski_color, Color.TRANSPARENT);
+        mBlockSpacing = ta.getDimension(R.styleable.Klotski_blockSpacing, Dimension.dp2px(getContext(), 3));
+        mDrawable1x1 = ta.getDrawable(R.styleable.Klotski_blockDrawable1x1);
+        mDrawable1x2 = ta.getDrawable(R.styleable.Klotski_blockDrawable1x2);
+        mDrawable2x1 = ta.getDrawable(R.styleable.Klotski_blockDrawable2x1);
+        mDrawable2x2 = ta.getDrawable(R.styleable.Klotski_blockDrawable2x2);
         ta.recycle();
     }
 
@@ -81,6 +100,7 @@ public class Klotski extends SurfaceView implements SurfaceHolder.Callback {
     public void surfaceCreated(SurfaceHolder holder) {
         mDrawThread = new DrawThread(mSurfaceHolder);
         mDrawThread.startDrawing();
+        mDrawThread.setBlocks(mBlocks);
     }
 
     @Override
@@ -93,10 +113,39 @@ public class Klotski extends SurfaceView implements SurfaceHolder.Callback {
         mDrawThread.stopDrawing();
     }
 
+    public void setBlocks(List<Block> blocks) {
+        this.mBlocks = blocks;
+        if (mBlocks != null) {
+            for (int i = 0; i < blocks.size(); i++) {
+                if (blocks.get(i).getDrawable() == null) {
+                    blocks.get(i).setDrawable(resolveDrawable(blocks.get(i).getType()));
+                }
+            }
+        }
+        if (mDrawThread != null) {
+            mDrawThread.setBlocks(mBlocks);
+        }
+    }
+
+    protected Drawable resolveDrawable(Block.Type type) {
+        if (type == Block.Type.RECT_1x1) {
+            return mDrawable1x1;
+        } else if (type == Block.Type.RECT_1x2) {
+            return mDrawable1x2;
+        } else if (type == Block.Type.RECT_2x1) {
+            return mDrawable2x1;
+        } else if (type == Block.Type.RECT_2x2) {
+            return mDrawable2x2;
+        }
+        return null;
+    }
+
     private class DrawThread extends Thread {
 
         private SurfaceHolder mSurfaceHolder;
         private boolean running;
+
+        private List<Block> mBlocks;
 
         public DrawThread(SurfaceHolder mSurfaceHolder) {
             this.mSurfaceHolder = mSurfaceHolder;
@@ -111,10 +160,17 @@ public class Klotski extends SurfaceView implements SurfaceHolder.Callback {
             running = false;
         }
 
+        public void setBlocks(List<Block> blocks) {
+            this.mBlocks = blocks;
+        }
+
         @Override
         public void run() {
             Canvas canvas;
             while (running) {
+                if (mBlocks == null) {
+                    continue;
+                }
                 canvas = null;
                 try {
                     canvas = mSurfaceHolder.lockCanvas(null);
@@ -132,9 +188,16 @@ public class Klotski extends SurfaceView implements SurfaceHolder.Callback {
         public void draw(Canvas canvas) {
             if (canvas == null)
                 return;
-            Paint paint = new Paint();
-            paint.setColor(Color.rgb(0, 0, 0));
-            canvas.drawRect(0, 0, mChessManWidth, mChessManHeight, paint);
+            for (Block block : mBlocks) {
+                Drawable drawable = block.getDrawable();
+                int spacing = (int) (mBlockSpacing / 2);
+                Rect rect = new Rect(block.getX() * mChessManWidth + spacing,
+                        block.getY() * mChessManHeight + spacing,
+                        (block.getX() + block.getType().width()) * mChessManWidth - spacing,
+                        (block.getY() + block.getType().height()) * mChessManHeight - spacing);
+                drawable.setBounds(rect);
+                drawable.draw(canvas);
+            }
         }
     }
 }

@@ -1,17 +1,41 @@
 package io.auxo.klotski.model;
 
+import android.graphics.drawable.Drawable;
 import android.support.annotation.IntRange;
 
 public class Block {
 
+    private int id;
     private Type type;
     private int x;
     private int y;
+    private Drawable drawable;
 
-    public Block(Type type, int x, int y) {
+    public Block(Type type, int x, int y, Drawable drawable) {
         this.type = type;
         this.x = x;
         this.y = y;
+        this.drawable = drawable;
+    }
+
+    public Type getType() {
+        return type;
+    }
+
+    public int getX() {
+        return x;
+    }
+
+    public int getY() {
+        return y;
+    }
+
+    public void setDrawable(Drawable drawable) {
+        this.drawable = drawable;
+    }
+
+    public Drawable getDrawable() {
+        return drawable;
     }
 
     public enum Type {

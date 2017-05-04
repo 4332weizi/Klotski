@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <declare-styleable name="Klotski">
-        <attr name="color" format="color"/>
+        <attr name="blockSpacing" format="dimension"/>
+        <attr name="blockDrawable1x1" format="reference|color"/>
+        <attr name="blockDrawable1x2" format="reference|color"/>
+        <attr name="blockDrawable2x1" format="reference|color"/>
+        <attr name="blockDrawable2x2" format="reference|color"/>
     </declare-styleable>
 </resources>
