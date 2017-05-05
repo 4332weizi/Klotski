@@ -1,5 +1,6 @@
 package io.auxo.klotski.model;
 
+import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.support.annotation.IntRange;
 
@@ -9,6 +10,7 @@ public class Block {
     private Type type;
     private int x;
     private int y;
+    private Rect rect;
     private Drawable drawable;
 
     public Block(Type type, int x, int y, Drawable drawable) {
@@ -16,6 +18,7 @@ public class Block {
         this.x = x;
         this.y = y;
         this.drawable = drawable;
+        rect = new Rect(x, y, x + type.width(), y + type.height());
     }
 
     public Type getType() {
@@ -28,6 +31,14 @@ public class Block {
 
     public int getY() {
         return y;
+    }
+
+    public Rect getRect() {
+        return rect;
+    }
+
+    public void setRect(Rect rect) {
+        this.rect = rect;
     }
 
     public void setDrawable(Drawable drawable) {

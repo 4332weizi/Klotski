@@ -12,7 +12,7 @@
         android:id="@+id/main_klotski"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:blockDrawable1x1="@mipmap/ic_launcher"
+        app:blockDrawable1x1="@mipmap/bing2"
         app:blockDrawable1x2="#342187"
         app:blockDrawable2x1="@color/colorPrimary"
         app:blockDrawable2x2="@color/colorAccent"

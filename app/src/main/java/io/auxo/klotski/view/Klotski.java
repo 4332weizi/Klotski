@@ -3,13 +3,16 @@ package io.auxo.klotski.view;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
-import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.PixelFormat;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.ViewGroup;
@@ -19,6 +22,7 @@ import java.util.List;
 import io.auxo.klotski.R;
 import io.auxo.klotski.model.Block;
 import io.auxo.klotski.util.Dimension;
+import io.auxo.klotski.util.L;
 
 public class Klotski extends SurfaceView implements SurfaceHolder.Callback {
 
@@ -94,6 +98,64 @@ public class Klotski extends SurfaceView implements SurfaceHolder.Callback {
 
         mChessManWidth = (mWidth - getPaddingLeft() - getPaddingRight()) / 4;
         mChessManHeight = (mHeight - getPaddingTop() - getPaddingBottom()) / 5;
+
+        updateBlocks();
+    }
+
+    private int touchedId = -1;
+    private float mDownX = 0;
+    private float mDownY = 0;
+    private float mLastX = 0;
+    private float mLastY = 0;
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                L.i(this, "ACTION_DOWN");
+                mDownX = event.getX();
+                mDownY = event.getY();
+                touchedId = getTouchedBlock((int) mDownX, (int) mDownY);
+                break;
+            case MotionEvent.ACTION_UP:
+                L.i(this, "ACTION_UP");
+                mDownX = 0;
+                mDownY = 0;
+                touchedId = -1;
+                break;
+            case MotionEvent.ACTION_MOVE:
+                L.i(this, "ACTION_MOVE");
+                if (touchedId == -1) {
+                    break;
+                }
+                Block block = mBlocks.get(touchedId);
+                Rect rect = new Rect(block.getRect().left,
+                        block.getRect().top,
+                        block.getRect().right,
+                        block.getRect().bottom);
+                int newX = (int) (rect.left + event.getX() - mLastX);
+                rect.offsetTo(newX, rect.top);
+                if (canMove(new Rect(), touchedId)) {
+                    block.setRect(rect);
+                    mBlocks.set(touchedId, block);
+                }
+                rect = new Rect(block.getRect().left,
+                        block.getRect().top,
+                        block.getRect().right,
+                        block.getRect().bottom);
+                int newY = (int) (rect.top + event.getY() - mLastY);
+                rect.offsetTo(rect.left, newY);
+                if (canMove(rect, touchedId)) {
+                    block.setRect(rect);
+                    mBlocks.set(touchedId, block);
+                }
+                break;
+            default:
+                break;
+        }
+        mLastX = event.getX();
+        mLastY = event.getY();
+        return true;
     }
 
     @Override
@@ -105,7 +167,8 @@ public class Klotski extends SurfaceView implements SurfaceHolder.Callback {
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-
+        L.i(this, "surfaceChanged");
+        updateBlocks();
     }
 
     @Override
@@ -113,13 +176,45 @@ public class Klotski extends SurfaceView implements SurfaceHolder.Callback {
         mDrawThread.stopDrawing();
     }
 
+    protected int getTouchedBlock(int x, int y) {
+        for (int i = 0; i < mBlocks.size(); i++) {
+            if (mBlocks.get(i).getRect().contains(x, y)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    protected boolean canMove(Rect rect, int index) {
+        for (int i = 0; i < mBlocks.size(); i++) {
+            if (index != i && rect.intersect(mBlocks.get(i).getRect())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public void setBlocks(List<Block> blocks) {
-        this.mBlocks = blocks;
+        mBlocks = blocks;
         if (mBlocks != null) {
-            for (int i = 0; i < blocks.size(); i++) {
-                if (blocks.get(i).getDrawable() == null) {
-                    blocks.get(i).setDrawable(resolveDrawable(blocks.get(i).getType()));
+            for (Block block : mBlocks) {
+                if (block.getDrawable() == null) {
+                    block.setDrawable(resolveDrawable(block.getType()));
                 }
+            }
+        }
+        updateBlocks();
+    }
+
+    protected void updateBlocks() {
+        if (mBlocks != null) {
+            for (int i = 0; i < mBlocks.size(); i++) {
+                Block block = mBlocks.get(i);
+                block.getRect().left = block.getX() * mChessManWidth;
+                block.getRect().top = block.getY() * mChessManWidth;
+                block.getRect().right = (block.getX() + block.getType().width()) * mChessManWidth;
+                block.getRect().bottom = (block.getY() + block.getType().height()) * mChessManHeight;
+                mBlocks.set(i, block);
             }
         }
         if (mDrawThread != null) {
@@ -186,16 +281,18 @@ public class Klotski extends SurfaceView implements SurfaceHolder.Callback {
         }
 
         public void draw(Canvas canvas) {
+            int spacing = (int) (mBlockSpacing / 2);
             if (canvas == null)
                 return;
+            Paint paint = new Paint();
+            paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
+            canvas.drawPaint(paint);
             for (Block block : mBlocks) {
                 Drawable drawable = block.getDrawable();
-                int spacing = (int) (mBlockSpacing / 2);
-                Rect rect = new Rect(block.getX() * mChessManWidth + spacing,
-                        block.getY() * mChessManHeight + spacing,
-                        (block.getX() + block.getType().width()) * mChessManWidth - spacing,
-                        (block.getY() + block.getType().height()) * mChessManHeight - spacing);
-                drawable.setBounds(rect);
+                drawable.setBounds(block.getRect().left + spacing,
+                        block.getRect().top + spacing,
+                        block.getRect().right - spacing,
+                        block.getRect().bottom - spacing);
                 drawable.draw(canvas);
             }
         }
