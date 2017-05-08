@@ -35,8 +35,9 @@ public class Klotski extends SurfaceView implements SurfaceHolder.Callback {
 
     private List<Block> mBlocks;
 
-    private int mChessManWidth;
-    private int mChessManHeight;
+    private Rect mRect;
+    private int mCellWidth;
+    private int mCellHeight;
 
     private float mBlockSpacing;
     private Drawable mDrawable1x1;
@@ -96,8 +97,10 @@ public class Klotski extends SurfaceView implements SurfaceHolder.Callback {
 
         Log.i(TAG, "高度调整后 height -> " + params.height + " width -> " + params.width);
 
-        mChessManWidth = (mWidth - getPaddingLeft() - getPaddingRight()) / 4;
-        mChessManHeight = (mHeight - getPaddingTop() - getPaddingBottom()) / 5;
+        mCellWidth = (mWidth - getPaddingLeft() - getPaddingRight()) / 4;
+        mCellHeight = (mHeight - getPaddingTop() - getPaddingBottom()) / 5;
+
+        mRect = new Rect(0, 0, mWidth - getPaddingLeft() - getPaddingRight(), mHeight - getPaddingTop() - getPaddingBottom());
 
         updateBlocks();
     }
@@ -119,6 +122,13 @@ public class Klotski extends SurfaceView implements SurfaceHolder.Callback {
                 break;
             case MotionEvent.ACTION_UP:
                 L.i(this, "ACTION_UP");
+                if (touchedId == -1) {
+                    break;
+                }
+                Block b = mBlocks.get(touchedId);
+                int newTop = Math.round((float) b.getRect().top / mCellHeight) * mCellHeight;
+                int newLeft = Math.round((float) b.getRect().left / mCellWidth) * mCellWidth;
+                b.getRect().offsetTo(newLeft, newTop);
                 mDownX = 0;
                 mDownY = 0;
                 touchedId = -1;
@@ -135,7 +145,7 @@ public class Klotski extends SurfaceView implements SurfaceHolder.Callback {
                         block.getRect().bottom);
                 int newX = (int) (rect.left + event.getX() - mLastX);
                 rect.offsetTo(newX, rect.top);
-                if (canMove(new Rect(), touchedId)) {
+                if (canMove(rect, touchedId)) {
                     block.setRect(rect);
                     mBlocks.set(touchedId, block);
                 }
@@ -185,9 +195,9 @@ public class Klotski extends SurfaceView implements SurfaceHolder.Callback {
         return -1;
     }
 
-    protected boolean canMove(Rect rect, int index) {
+    protected boolean canMove(Rect rect, int ignore) {
         for (int i = 0; i < mBlocks.size(); i++) {
-            if (index != i && rect.intersect(mBlocks.get(i).getRect())) {
+            if ((i != ignore && rect.intersect(mBlocks.get(i).getRect())) || !mRect.contains(rect)) {
                 return false;
             }
         }
@@ -210,10 +220,10 @@ public class Klotski extends SurfaceView implements SurfaceHolder.Callback {
         if (mBlocks != null) {
             for (int i = 0; i < mBlocks.size(); i++) {
                 Block block = mBlocks.get(i);
-                block.getRect().left = block.getX() * mChessManWidth;
-                block.getRect().top = block.getY() * mChessManWidth;
-                block.getRect().right = (block.getX() + block.getType().width()) * mChessManWidth;
-                block.getRect().bottom = (block.getY() + block.getType().height()) * mChessManHeight;
+                block.getRect().left = block.getX() * mCellWidth;
+                block.getRect().top = block.getY() * mCellWidth;
+                block.getRect().right = (block.getX() + block.getType().width()) * mCellWidth;
+                block.getRect().bottom = (block.getY() + block.getType().height()) * mCellHeight;
                 mBlocks.set(i, block);
             }
         }
